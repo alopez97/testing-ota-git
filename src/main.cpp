@@ -4,15 +4,16 @@
 #include <WiFiClientSecure.h>
 #include "cert.h"
 
-const char *ssid = "MIFibra-3F62";
+const char *ssid = "MiFibra-3F62";
 const char *password = "rfFpcff4";
 
 int buttonPin = 15;
+int led = 12;
 
 String FirmwareVer = {
-    "1.0"};
-#define URL_fw_Version "https://raw.githubusercontent.com/programmer131/ESP8266_ESP32_SelfUpdate/master/esp32_ota/bin_version.txt"
-#define URL_fw_Bin "https://raw.githubusercontent.com/programmer131/ESP8266_ESP32_SelfUpdate/master/esp32_ota/fw.bin"
+    "1.1"};
+#define URL_fw_Version "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/code-ota/bin_version.txt"
+#define URL_fw_Bin "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/code-ota/firmware.bin"
 
 //#define URL_fw_Version "http://cade-make.000webhostapp.com/version.txt"
 //#define URL_fw_Bin "http://cade-make.000webhostapp.com/firmware.bin"
@@ -25,6 +26,7 @@ void setup()
 {
   Serial.begin(9600);
   pinMode(buttonPin, INPUT_PULLDOWN);
+  pinMode(led, OUTPUT);
   Serial.print("Active firmware version:");
   Serial.println(FirmwareVer);
   connect_wifi();
@@ -38,6 +40,10 @@ void loop()
     delay(1000);
     firmwareUpdate();
   }
+  digitalWrite(led, HIGH);
+  delay(1000);
+  digitalWrite(led, LOW);
+  delay(1000);
 }
 
 void connect_wifi()
