@@ -26,7 +26,7 @@ int buttonPin = 15;
 int led = 12;
 
 String FirmwareVer = {
-    "1.1"};
+    "1.2"};
 
 #define URL_fw_Version "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/new_version/bin_version.txt"
 #define URL_fw_Bin "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/new_version/firmware.bin"
@@ -92,7 +92,7 @@ void loop()
 
   // device.setId(perifericalId); //
   device.sendState(data); //Send data to Losant
-  delay(10000);
+  delay(1000);
 }
 
 void wifiConnect()
