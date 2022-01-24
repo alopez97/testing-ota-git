@@ -12,8 +12,8 @@ int led = 12;
 
 String FirmwareVer = {
     "1.2"};
-#define URL_fw_Version "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/src/bin_version.txt"
-#define URL_fw_Bin "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/src/firmware.bin"
+#define URL_fw_Version "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/new_version/bin_version.txt"
+#define URL_fw_Bin "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/new_version/firmware.bin"
 
 //#define URL_fw_Version "http://cade-make.000webhostapp.com/version.txt"
 //#define URL_fw_Bin "http://cade-make.000webhostapp.com/firmware.bin"
