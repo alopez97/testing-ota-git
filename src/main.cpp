@@ -4,21 +4,47 @@
 #include <WiFiClientSecure.h>
 #include "cert.h"
 
-const char *ssid = "MiFibra-3F62";
-const char *password = "rfFpcff4";
+
+#include <ModbusIP_ESP8266.h>
+#include <Losant.h>
+
+#include <secrets.h>
+
+//WiFi credentials
+const char *SSID = SSID_SECRET;
+const char *PASS = PASS_SECRET;
+
+//Losant credentials
+const char *LOSANT_ID = ID;
+const char *LOSANT_KEY = KEY;
+const char *LOSANT_SECRET = SECRET;
+
+
+#define DEBUG true
 
 int buttonPin = 15;
 int led = 12;
 
 String FirmwareVer = {
-    "1.2"};
+    "1.0"};
+
 #define URL_fw_Version "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/new_version/bin_version.txt"
 #define URL_fw_Bin "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/new_version/firmware.bin"
 
-//#define URL_fw_Version "http://cade-make.000webhostapp.com/version.txt"
-//#define URL_fw_Bin "http://cade-make.000webhostapp.com/firmware.bin"
+//Losant
+WiFiClientSecure wifiClient;    //Initialize Secure WiFi Client
+LosantDevice device(LOSANT_ID); //Initialize Losant Device
 
-void connect_wifi();
+// Modbus Registers Offsets
+const int TEST_COIL = 1;
+//ModbusIP object
+ModbusIP mb;
+
+//Auxiliar functions declaration
+void wifiConnect();
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
+void LosantReconnect();
+
 void firmwareUpdate();
 int FirmwareVersionCheck();
 
@@ -29,8 +55,15 @@ void setup()
   pinMode(led, OUTPUT);
   Serial.print("Active firmware version:");
   Serial.println(FirmwareVer);
-  connect_wifi();
+
+  wifiConnect(); //Connect wifi
+
+  mb.server(); //Modbus slave
+  mb.addCoil(TEST_COIL, 0);
+
+  LosantReconnect(); //Losant
 }
+
 void loop()
 {
   if (digitalRead(buttonPin) == HIGH)
@@ -40,26 +73,79 @@ void loop()
     delay(1000);
     firmwareUpdate();
   }
-  digitalWrite(led, HIGH);
-  delay(5000);
-  digitalWrite(led, LOW);
-  delay(5000);
+
+
+  LosantReconnect();
+  mb.task();
+  delay(10);
+  device.loop();
+  Serial.print("Coil 1: ");
+  Serial.println(mb.Coil(TEST_COIL));
+  delay(1000);
+
+  //JSON parser document
+  StaticJsonDocument<100> doc; //Important to set a value that is larger than the payload we want to send
+  JsonObject data = doc.to<JsonObject>();
+
+  //Currents
+  data["bool"] = mb.Coil(TEST_COIL); //currentL1
+
+  // device.setId(perifericalId); //
+  device.sendState(data); //Send data to Losant
+  delay(3000);
 }
 
-void connect_wifi()
+void wifiConnect()
 {
-  Serial.println("Waiting for WiFi");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
+  if (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
-    Serial.print(".");
-  }
 
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+    WiFi.begin(SSID, PASS);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+#if DEBUG
+      Serial.print(".");
+#endif
+      delay(500);
+    }
+
+#if DEBUG
+    Serial.println("Successfully connected to WiFi!");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("MAC: ");
+    Serial.println(WiFi.macAddress());
+#endif
+
+    wifiClient.setCACert(root_ca_mqtt_losant); //Set the Certificate in order to establish a secure MQTT Connection
+  }
+}
+
+/**
+ * Function to connect to Losant whenever not connected.  
+ */
+
+void LosantReconnect()
+{
+  if (!device.connected())
+  {
+
+    while (!device.connected())
+    {
+      device.setId(LOSANT_ID); //Its CRITICAL that we set the Gateway Id before trying to connect to Losant. If WiFi goes down and comes back,
+      //the last Id that the device object will have is the periphericalId, so we need to correct this using the setId function.
+
+      device.connectSecure(wifiClient, LOSANT_KEY, LOSANT_SECRET);
+      delay(1000);
+
+#if DEBUG
+      Serial.print("*");
+      // These functions could be useful in case Losant doesn't allow the connection, to debug what is the problem.
+      Serial.println(device.mqttClient.lastError());
+      Serial.println(device.mqttClient.returnCode());
+#endif
+    }
+  }
 }
 
 void firmwareUpdate(void)
@@ -67,6 +153,7 @@ void firmwareUpdate(void)
   WiFiClientSecure client;
   client.setCACert(rootCACertificate);
   httpUpdate.setLedPin(LED_BUILTIN, LOW);
+  Serial.println("Downloading .bin file...");
   t_httpUpdate_return ret = httpUpdate.update(client, URL_fw_Bin);
 
   switch (ret)
@@ -136,6 +223,7 @@ int FirmwareVersionCheck(void)
     {
       Serial.println(payload);
       Serial.println("New firmware detected");
+      Serial.println("The new firmware will be downloaded and installed...");
       return 1;
     }
   }
