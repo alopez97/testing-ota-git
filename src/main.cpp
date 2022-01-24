@@ -11,7 +11,7 @@ int buttonPin = 15;
 int led = 12;
 
 String FirmwareVer = {
-    "1.1"};
+    "1.2"};
 #define URL_fw_Version "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/src/bin_version.txt"
 #define URL_fw_Bin "https://raw.githubusercontent.com/alopez97/testing-ota-git/main/src/firmware.bin"
 
@@ -41,9 +41,9 @@ void loop()
     firmwareUpdate();
   }
   digitalWrite(led, HIGH);
-  delay(1000);
+  delay(5000);
   digitalWrite(led, LOW);
-  delay(1000);
+  delay(5000);
 }
 
 void connect_wifi()
